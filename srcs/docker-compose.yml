@@ -1,0 +1,172 @@
+services:
+  mariadb:
+    container_name: mariadb
+    image: mariadb
+    build:
+      context: requirements/mariadb
+    env_file:
+      - .env
+    secrets:
+      - db_root_password
+      - db_password
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - inception
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=$$(cat /run/secrets/db_root_password) || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  wordpress:
+    container_name: wordpress
+    image: wordpress
+    build:
+      context: requirements/wordpress
+    env_file:
+      - .env
+    secrets:
+      - db_password
+      - wp_admin_password
+      - wp_user_password
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - inception
+    restart: always
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  nginx:
+    container_name: nginx
+    image: nginx
+    build:
+      context: requirements/nginx
+    env_file:
+      - .env
+    ports:
+      - "443:443"
+    volumes:
+      - wordpress_data:/var/www/html:ro
+    networks:
+      - inception
+    restart: always
+    depends_on:
+      - wordpress
+  
+  redis:
+    container_name: redis
+    image: redis
+    build:
+      context: requirements/bonus/redis
+    networks:
+      - inception
+    restart: always
+
+  adminer:
+    container_name: adminer
+    image: adminer
+    build:
+      context: requirements/bonus/adminer
+    ports:
+      - "8081:8080"
+    networks:
+      - inception
+    restart: always
+    depends_on:
+      - mariadb
+
+  static:
+    container_name: static
+    image: static
+    build:
+      context: requirements/bonus/static
+    ports:
+      - "8082:80"
+    networks:
+      - inception
+    restart: always
+
+  ftp:
+    container_name: ftp
+    image: ftp
+    build:
+      context: requirements/bonus/ftp
+    env_file:
+      - .env
+    secrets:
+      - ftp_password
+    ports:
+      - "21:21"
+      - "21100-21110:21100-21110"
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - inception
+    restart: always
+    depends_on:
+      - wordpress
+
+  portainer:
+    container_name: portainer
+    image: portainer
+    build:
+      context: requirements/bonus/portainer
+    secrets:
+      - portainer_admin_password
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - inception
+    restart: always
+
+networks:
+  inception:
+    name: inception
+    driver: bridge
+
+secrets:
+  db_root_password:
+    file: ../secrets/db_root_password
+  db_password:
+    file: ../secrets/db_password
+  wp_admin_password:
+    file: ../secrets/wp_admin_password
+  wp_user_password:
+    file: ../secrets/wp_user_password
+  ftp_password:
+    file: ../secrets/ftp_password
+  portainer_admin_password:
+    file: ../secrets/portainer_admin_password
+
+volumes:
+  mariadb_data:
+    name: mariadb_data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR}/mariadb
+
+  wordpress_data:
+    name: wordpress_data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR}/wordpress
+
+  portainer_data:
+    name: portainer_data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR}/portainer

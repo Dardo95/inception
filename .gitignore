@@ -1,0 +1,9 @@
+# Secrets
+secrets/*
+!secrets/.gitkeep
+
+# Environment
+srcs/.env
+
+# Docker
+*.log
