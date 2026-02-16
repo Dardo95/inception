@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY tools/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY conf/50-server.conf /etc/mysql/mariadb.conf.d/50-server.cnf
 
 EXPOSE 3306
 
