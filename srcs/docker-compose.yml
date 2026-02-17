@@ -1,7 +1,7 @@
 services:
   mariadb:
     container_name: mariadb
-    image: mariadb
+    image: mariadb:inception
     build:
       context: requirements/mariadb
     env_file:
@@ -22,7 +22,7 @@ services:
 
   wordpress:
     container_name: wordpress
-    image: wordpress
+    image: wordpress:inception
     build:
       context: requirements/wordpress
     env_file:
@@ -42,7 +42,7 @@ services:
 
   nginx:
     container_name: nginx
-    image: nginx
+    image: nginx:inception
     build:
       context: requirements/nginx
     env_file:
@@ -56,10 +56,10 @@ services:
     restart: always
     depends_on:
       - wordpress
-  
+
   redis:
     container_name: redis
-    image: redis
+    image: redis:inception
     build:
       context: requirements/bonus/redis
     networks:
@@ -68,7 +68,7 @@ services:
 
   adminer:
     container_name: adminer
-    image: adminer
+    image: adminer:inception
     build:
       context: requirements/bonus/adminer
     ports:
@@ -81,7 +81,7 @@ services:
 
   static:
     container_name: static
-    image: static
+    image: static:inception
     build:
       context: requirements/bonus/static
     ports:
@@ -92,7 +92,7 @@ services:
 
   ftp:
     container_name: ftp
-    image: ftp
+    image: ftp:inception
     build:
       context: requirements/bonus/ftp
     env_file:
@@ -112,7 +112,7 @@ services:
 
   portainer:
     container_name: portainer
-    image: portainer
+    image: portainer:inception
     build:
       context: requirements/bonus/portainer
     secrets:
