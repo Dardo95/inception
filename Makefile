@@ -14,6 +14,7 @@ help:
 	@echo "  make up-<service>          Up one service (Compose may start dependencies)"
 	@echo "  make upb                  Up all services + build"
 	@echo "  make upb-<service>         Up one service + build"
+	@echo "  make upb-ftp         	   Up ftp + build without depends"
 	@echo "  make down                 Down all services"
 	@echo "  make down-<service>        Stop+rm one service"
 	@echo "  make start | stop          Start/stop all"
@@ -55,6 +56,10 @@ upb:
 
 upb-%:
 	$(COMPOSE) up -d --build $*
+
+upb-ftp:
+	$(COMPOSE) build ftp
+	$(COMPOSE) up -d --no-deps ftp
 
 # --- Start / Stop / Restart ---
 start:
@@ -108,4 +113,4 @@ prune:
 	docker image prune -a
 
 .PHONY: help config build up upb down start stop restart logs ps status clean fclean re prune \
-        build-% up-% upb-% down-% start-% stop-% restart-% logs-%
+        build-% up-% upb-% upb-ftp down-% start-% stop-% restart-% logs-%
