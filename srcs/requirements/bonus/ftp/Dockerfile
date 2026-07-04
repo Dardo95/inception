@@ -1,11 +1,11 @@
 FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    vsftpd ca-certificates \
+    vsftpd ca-certificates gettext-base \
     && rm -rf /var/lib/apt/lists/*
 	
 RUN mkdir -p /var/run/vsftpd/empty
-COPY conf/vsftpd.conf /etc/vsftpd.conf
+COPY conf/vsftpd.conf.template /etc/vsftpd.conf.template
 COPY tools/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 

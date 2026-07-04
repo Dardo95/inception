@@ -2,9 +2,18 @@ NAME        := inception
 LOGIN       ?= $(shell whoami)
 
 COMPOSE_YML := srcs/docker-compose.yml
-COMPOSE     := docker compose -f $(COMPOSE_YML)
+ENV_FILE    := srcs/.env
+COMPOSE     := docker compose -p inception -f $(COMPOSE_YML) --env-file $(ENV_FILE)
 
-.DEFAULT_GOAL := help
+# Real IP of this machine (VM), used by vsftpd for FTP passive mode.
+# Primary method needs iproute2 (`ip`, standard on Debian); falls back
+# to `hostname -I` if that's not available.
+HOST_IP     := $(shell ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($$i=="src") print $$(i+1)}')
+ifeq ($(strip $(HOST_IP)),)
+HOST_IP     := $(shell hostname -I 2>/dev/null | awk '{print $$1}')
+endif
+
+.DEFAULT_GOAL := upb
 
 help:
 	@echo "Usage:"
@@ -33,8 +42,28 @@ help:
 	@echo "  LOGIN=$(LOGIN)"
 	@echo "  COMPOSE_YML=$(COMPOSE_YML)"
 
+# --- Env setup ---
+# Ensures .env exists and always has an up-to-date HOST_IP, so FTP
+# passive mode works regardless of which machine this runs on.
+env:
+	@if [ ! -f $(ENV_FILE) ]; then \
+		cp srcs/.env.example $(ENV_FILE); \
+		echo "[env] Created $(ENV_FILE) from .env.example"; \
+	fi
+	@printf '%s\n' "$$(cat $(ENV_FILE))" > $(ENV_FILE).tmp && mv $(ENV_FILE).tmp $(ENV_FILE)
+	@if [ -z "$(HOST_IP)" ]; then \
+		echo "[env] ERROR: could not detect HOST_IP automatically." >&2; \
+		exit 1; \
+	fi
+	@if grep -q '^HOST_IP=' $(ENV_FILE); then \
+		sed -i "s/^HOST_IP=.*/HOST_IP=$(HOST_IP)/" $(ENV_FILE); \
+	else \
+		echo "HOST_IP=$(HOST_IP)" >> $(ENV_FILE); \
+	fi
+	@echo "[env] HOST_IP=$(HOST_IP)"
+
 # --- Validate ---
-config:
+config: env
 	$(COMPOSE) config
 
 # --- Build ---
@@ -45,19 +74,19 @@ build-%:
 	$(COMPOSE) build $*
 
 # --- Up ---
-up:
+up: env
 	$(COMPOSE) up -d
 
-up-%:
+up-%: env
 	$(COMPOSE) up -d $*
 
-upb:
+upb: env
 	$(COMPOSE) up -d --build
 
-upb-%:
+upb-%: env
 	$(COMPOSE) up -d --build $*
 
-upb-ftp:
+upb-ftp: env
 	$(COMPOSE) build ftp
 	$(COMPOSE) up -d --no-deps ftp
 
@@ -112,5 +141,5 @@ re: fclean upb
 prune:
 	docker image prune -a
 
-.PHONY: help config build up upb down start stop restart logs ps status clean fclean re prune \
+.PHONY: help env config build up upb down start stop restart logs ps status clean fclean re prune \
         build-% up-% upb-% upb-ftp down-% start-% stop-% restart-% logs-%

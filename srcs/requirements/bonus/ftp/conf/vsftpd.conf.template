@@ -14,9 +14,9 @@ chroot_local_user=YES
 allow_writeable_chroot=YES
 
 pasv_enable=YES
-pasv_min_port=21100
-pasv_max_port=21110
-pasv_address=192.168.1.116
+pasv_min_port=${FTP_PASV_MIN}
+pasv_max_port=${FTP_PASV_MAX}
+pasv_address=${HOST_IP}
 pasv_addr_resolve=NO
 
 # We will set local_root in entrypoint to /var/www/html
